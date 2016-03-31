@@ -29,13 +29,13 @@ var path = {
   DEST: 'dist',
   DEST_BUILD: 'dist/build',
   DEST_SRC: 'dist/src',
-  CSS_SRC: './src/styles/*.css',
+  CSS_SRC: 'src/**/*.css',
   ENTRY_POINT: './src/js/App.js',
   DEPENDENCIES: 'node_modules/'
 };
 
 gulp.task('clean', function () {
-  rimraf(path.DEST);
+  rimraf(path.DEST, {}, function () {});
 });
 
 // helper task to copy our index.html from src to dest
@@ -105,5 +105,5 @@ gulp.task('useref', function(){
 });
 
 // these are what get called when we do either `gulp` or `gulp production` on the CLI
-gulp.task('default', ['connect', 'watch', 'copy', 'useref']);
+gulp.task('default', ['connect', 'watch', 'clean', 'copy', 'useref']);
 gulp.task('production', ['useref', 'build']);

@@ -95,7 +95,7 @@ var Map = React.createClass({
 
         if (that.isMounted()) {
           // count the number of features and store it in the component's state for use later
-          // that.state.numEntrances = res.features.length;
+          that.state.numberOfDistricts = res.features.length;
           // that.setState({ numEntrances: that.state.numEntrances });
           // use the component's addGeoJSON method to add the GeoJSON data to the map
           that.addGeoJSON(res);
@@ -146,55 +146,48 @@ var Map = React.createClass({
   },
 
   getColor: function (d) {
-    return d > 21  ? '#800026' :
-           d > 18  ? '#BD0026' :
-           d > 15  ? '#E31A1C' :
-           d > 12  ? '#FC4E2A' :
-           d > 9  ? '#FD8D3C' :
-           d > 6  ? '#FEB24C' :
-           d > 3   ? '#FED976' :
-                     '#FFEDA0';
+    return d > 35  ? '#08519c' :
+           d > 28  ? '#3182bd' :
+           d > 21  ? '#6baed6' :
+           d > 14  ? '#9ecae1' :
+           d > 7   ? '#c6dbef' :
+                     '#eff3ff';
   },
 
-  zoomToFeature: function(target) {
-    // pad fitBounds() so features aren't hidden under the Filter UI element
-    var fitBoundsParams = {
-      paddingTopLeft: [200,10],
-      paddingBottomRight: [10,10]
-    };
-    map.fitBounds(target.getBounds(), fitBoundsParams);
+  highlightFeature: function (e) {
+    var layer = e.target;
+
+    layer.setStyle({
+        weight: 5,
+        color: '#666',
+        dashArray: '',
+        fillOpacity: 0.7
+    });
+
+    if (!L.Browser.ie && !L.Browser.opera) {
+        layer.bringToFront();
+    }
+
+    info.update(layer.feature.properties);
   },
 
-  // filter: function(feature, layer) {
-  //   // filter the subway entrances based on the map's current search filter
-  //   // returns true only if the filter value matches the value of feature.properties.LINE
-  //   var test = feature.properties.LINE.split('-').indexOf(this.state.filter);
+  resetHighlight: function (e) {
+    console.lo
+    this.state.geojsonLayer.resetStyle(e.target);
 
-  //   if (this.state.filter === '*' || test !== -1) {
-  //     return true;
-  //   }
-  // },
+    info.update();
+  },
 
-  // pointToLayer: function(feature, latlng) {
-  //   // renders our GeoJSON using circle markers, rather than
-  //   // Leaflet's default image markers typically used to represent points
+  zoomToFeature: function (e) {
+    map.fitBounds(e.target.getBounds());
+  },
 
-  //   // parameters to style the GeoJSON markers
-  //   var markerParams = {
-  //     radius: 4,
-  //     fillColor: 'orange',
-  //     color: '#fff',
-  //     weight: 1,
-  //     opacity: 0.5,
-  //     fillOpacity: 0.8
-  //   };
-
-  //   return L.circleMarker(latlng, markerParams);
-  // },
-
-  onEachFeature: function(feature, layer) {
-    // this method is used to create popups for the GeoJSON features
-
+  onEachFeature: function (feature, layer) {
+    layer.on({
+      mouseover: this.highlightFeature,
+      mouseout: this.resetHighlight,
+      click: this.zoomToFeature
+    });
   },
 
   getID: function() {
@@ -211,6 +204,9 @@ var Map = React.createClass({
     // set our state to include the tile layer
     this.state.tileLayer = L.tileLayer(config.tileLayer.url, config.tileLayer.params).addTo(map);
 
+    info.addTo(map);
+    // legend.addTo(map);
+
     this.setState({
       tileLayer: this.state.tileLayer
     });
@@ -226,6 +222,39 @@ var Map = React.createClass({
     );
   }
 });
+
+  var info = L.control();
+
+  info.onAdd = function (map) {
+      this._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
+      this.update();
+      return this._div;
+  };
+
+  // method that we will use to update the control based on feature properties passed
+  info.update = function (props) {
+      this._div.innerHTML = '<h4>Hawaii House Districts</h4>' +  (props ?
+          '<b>House District ' + props.objectid + '</b>'
+          : 'Hover over a district!');
+  };
+
+  // var legend = L.control({position: 'bottomright'});
+
+  // legend.onAdd = function (map) {
+
+  //   var div = L.DomUtil.create('div', 'info legend'),
+  //     grades = [0, 7, 14, 21, 28, 35],
+  //     labels = [];
+
+  //   // loop through our density intervals and generate a label with a colored square for each interval
+  //   for (var i = 0; i < grades.length; i++) {
+  //     div.innerHTML +=
+  //       '<i style="background:' + Map.getColor(grades[i] + 1) + '"></i> ' +
+  //       grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+');
+  //   }
+
+  //   return div;
+  // };
 
 
 // export our Map component so that Browserify can include it with other components that require it
