@@ -19,7 +19,7 @@ var map;
 config.params = {
   center: [21.289373, -157.917480],
   zoomControl: false,
-  zoom: 9,
+  zoom: 10,
   // maxZoom: 19,
   // minZoom: 11,
   scrollWheelZoom: false,
@@ -41,6 +41,7 @@ config.tileLayer = {
 
 // here's the actual component
 var Map = React.createClass({
+
   getInitialState: function() {
     // TODO: if we wanted an initial "state" for our map component we could add it here
     return {
@@ -79,7 +80,7 @@ var Map = React.createClass({
 
   },
 
-  updateMap: function(line) {
+  updateMap: function() {
     // change the subway line filter
 
 
@@ -107,17 +108,17 @@ var Map = React.createClass({
   },
 
   addGeoJSON: function(data) {
-    this.state.geojson = data;
+    var geojsonLayer = this.state.geojsonLayer;
 
     // if the GeoJSON layer has already been created, clear it.
     // this allows the GeoJSON to be redrawn when the user filters it
-    if (this.state.geojsonLayer && data){
+    if (geojsonLayer && data){
       // remove the data from the geojson layer
-      this.state.geojsonLayer.clearLayers();
-      this.state.geojsonLayer.addData(data);
-    } else if (!this.state.geojsonLayer) {
+      geojsonLayer.clearLayers();
+      geojsonLayer.addData(data);
+    } else if (!geojsonLayer) {
       // add our GeoJSON to the component's state and the Leaflet map
-      this.state.geojsonLayer = L.geoJson(data, {
+      geojsonLayer = L.geoJson(data, {
         onEachFeature: this.onEachFeature,
         style: this.style
         // pointToLayer: this.pointToLayer,
@@ -127,8 +128,8 @@ var Map = React.createClass({
 
     // set our component's state with the GeoJSON data and L.geoJson layer
     this.setState({
-      geojson: this.state.geojson,
-      geojsonLayer: this.state.geojsonLayer
+      geojson: data,
+      geojsonLayer: geojsonLayer
     });
 
     // fit the filtered geojson within the map's bounds
@@ -168,14 +169,13 @@ var Map = React.createClass({
         layer.bringToFront();
     }
 
-    info.update(layer.feature.properties);
+    this.info.update(layer.feature.properties);
   },
 
   resetHighlight: function (e) {
-    console.lo
     this.state.geojsonLayer.resetStyle(e.target);
 
-    info.update();
+    this.info.update();
   },
 
   zoomToFeature: function (e) {
@@ -195,21 +195,54 @@ var Map = React.createClass({
     return ReactDOM.findDOMNode(this).querySelectorAll('#map')[0];
   },
 
-  init: function(id) {
+  init: function(mapElement) {
     // this function creates the Leaflet map object and is called after the Map component mounts
-    map = L.map(id, config.params);
-    L.control.zoom({ position: "bottomleft"}).addTo(map);
-    L.control.scale({ position: "bottomleft"}).addTo(map);
+    map = L.map(mapElement, config.params);
+    L.control.zoom({ position: "bottomleft" }).addTo(map);
+    L.control.scale({ position: "bottomleft" }).addTo(map);
 
     // set our state to include the tile layer
     this.state.tileLayer = L.tileLayer(config.tileLayer.url, config.tileLayer.params).addTo(map);
 
+    // Top right info panel
+    var info = this.info = L.control();
+    info.onAdd = function (map) {
+        this._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
+        this.update();
+        return this._div;
+    };
+    // method that we will use to update the control based on feature properties passed
+    info.update = function (props) {
+        this._div.innerHTML = '<h4>Hawaii House Districts</h4>' +  (props ?
+            '<b>House District ' + props.objectid + '</b>'
+            : 'Hover over a district!');
+    };
     info.addTo(map);
-    // legend.addTo(map);
 
-    this.setState({
-      tileLayer: this.state.tileLayer
-    });
+    // bottom right legend panel
+    var legend = L.control({position: 'bottomright'});
+    var _this = this;
+
+    legend.onAdd = function (map) {
+
+      var div = L.DomUtil.create('div', 'info legend'),
+        grades = [0, 7, 14, 21, 28, 35],
+        labels = [];
+
+      // loop through our density intervals and generate a label with a colored square for each interval
+      for (var i = 0; i < grades.length; i++) {
+        div.innerHTML +=
+          '<i style="background:' + _this.getColor(grades[i] + 1) + '"></i> ' +
+          grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+');
+      }
+
+      return div;
+    };
+
+    legend.addTo(map);
+
+
+
   },
 
   render : function() {
@@ -223,38 +256,7 @@ var Map = React.createClass({
   }
 });
 
-  var info = L.control();
 
-  info.onAdd = function (map) {
-      this._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
-      this.update();
-      return this._div;
-  };
-
-  // method that we will use to update the control based on feature properties passed
-  info.update = function (props) {
-      this._div.innerHTML = '<h4>Hawaii House Districts</h4>' +  (props ?
-          '<b>House District ' + props.objectid + '</b>'
-          : 'Hover over a district!');
-  };
-
-  // var legend = L.control({position: 'bottomright'});
-
-  // legend.onAdd = function (map) {
-
-  //   var div = L.DomUtil.create('div', 'info legend'),
-  //     grades = [0, 7, 14, 21, 28, 35],
-  //     labels = [];
-
-  //   // loop through our density intervals and generate a label with a colored square for each interval
-  //   for (var i = 0; i < grades.length; i++) {
-  //     div.innerHTML +=
-  //       '<i style="background:' + Map.getColor(grades[i] + 1) + '"></i> ' +
-  //       grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+');
-  //   }
-
-  //   return div;
-  // };
 
 
 // export our Map component so that Browserify can include it with other components that require it
