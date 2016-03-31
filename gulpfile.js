@@ -14,6 +14,7 @@ var source = require('vinyl-source-stream');
 var browserify = require('browserify');
 var watchify = require('watchify');
 var reactify = require('reactify');
+var rimraf = require('rimraf');
 
 // TODO: implement browserSync with live page reloading
 // var browserSync = require('browser-sync');
@@ -22,19 +23,24 @@ var reactify = require('reactify');
 // object containing file names and paths for output
 var path = {
   HTML: 'src/index.html',
-  JSON: 'data/bk_subway_entrances.geojson',
+  JSON: 'data/hshd.geojson',
   MINIFIED_OUT: 'build.min.js',
   OUT: 'build.js',
   DEST: 'dist',
   DEST_BUILD: 'dist/build',
   DEST_SRC: 'dist/src',
+  CSS_SRC: './src/styles/*.css',
   ENTRY_POINT: './src/js/App.js',
   DEPENDENCIES: 'node_modules/'
 };
 
+gulp.task('clean', function () {
+  rimraf(path.DEST);
+});
+
 // helper task to copy our index.html from src to dest
 gulp.task('copy', function(){
-  gulp.src([path.HTML, path.JSON])
+  gulp.src([path.HTML, path.JSON, path.CSS_SRC])
     .pipe(gulp.dest(path.DEST))
     .pipe($.connect.reload());
 });
@@ -55,8 +61,8 @@ gulp.task('watch', function() {
     entries: [path.ENTRY_POINT],
     transform: [reactify],
     debug: true,
-    cache: {}, 
-    packageCache: {}, 
+    cache: {},
+    packageCache: {},
     fullPaths: true
   }));
 

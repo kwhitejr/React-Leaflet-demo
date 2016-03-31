@@ -43,7 +43,7 @@ var Filter = React.createClass({
         <select defaultValue="*" type="select" name="filterlines" onChange={this.updateFilter}>
             { /* This is how to do a comment in JSX! notice the curly braces. */ }
             { /* We render the select's option elements by maping each of the values of subwayLines array to option elements */ }
-            {this.props.lines.map(function(line, i){   
+            {this.props.lines.map(function(line, i){
                 { /* the "key" property is recommended by React when creating list like elements */ }
                 return (
                   <option value={line} key={i}>{line}</option>
