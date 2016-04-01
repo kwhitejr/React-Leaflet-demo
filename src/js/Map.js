@@ -15,7 +15,7 @@ var map;
 
 // map paramaters to pass to L.map when we instantiate it
 config.params = {
-  center: [21.449873, -157.962799],
+  center: [21.477351, -157.962799],
   zoomControl: false,
   zoom: 10,
   // maxZoom: 19,
@@ -66,8 +66,7 @@ var Map = React.createClass({
       tileLayer : null,
       geojsonLayer: null,
       geojson: null,
-      filter: '*',
-      numEntrances: null,
+      chamber: 'house'
     };
   },
 
@@ -118,7 +117,7 @@ var Map = React.createClass({
             geo1: res
           });
           // use the component's addGeoJSON method to add the GeoJSON data to the map
-          _this.addGeoJSON(res);
+          _this.addGeoJSON(res, 'house');
         }
       })
       .catch(function(xhr, res, e) {
@@ -140,36 +139,55 @@ var Map = React.createClass({
       });
   },
 
-  addGeoJSON: function(data) {
+  addGeoJSON: function(data, chamber) {
     var geojsonLayer = this.state.geojsonLayer;
 
     // zoom to center
     this.zoomToCenter();
 
-    // if the GeoJSON layer has already been created, clear it.
-    // this allows the GeoJSON to be redrawn when the user filters it
-    if (geojsonLayer && data){
-      // remove the data from the geojson layer
-      geojsonLayer.clearLayers();
-      geojsonLayer.addData(data);
-    } else if (!geojsonLayer) {
-      // add our GeoJSON to the component's state and the Leaflet map
-      geojsonLayer = L.geoJson(data, {
-        onEachFeature: this.onEachFeature,
-        style: this.style
-        // pointToLayer: this.pointToLayer,
-        // filter: this.filter
-      }).addTo(map);
-    }
-
-    // set our component's state with the GeoJSON data and L.geoJson layer
     this.setState({
-      geojson: data,
-      geojsonLayer: geojsonLayer
+      chamber: chamber
+    }, () => {
+      if (geojsonLayer && data){
+        // remove the data from the geojson layer
+        geojsonLayer.clearLayers();
+        geojsonLayer.addData(data);
+      } else if (!geojsonLayer) {
+        // add our GeoJSON to the component's state and the Leaflet map
+        geojsonLayer = L.geoJson(data, {
+          onEachFeature: this.onEachFeature,
+          style: this.style
+          // pointToLayer: this.pointToLayer,
+          // filter: this.filter
+        }).addTo(map);
+      }
+
+      // bottom right legend panel
+      var legend = L.control({position: 'bottomright'});
+      var _this = this;
+      legend.onAdd = function (map) {
+        console.log(_this.state.chamber);
+        var div = L.DomUtil.create('div', 'info legend'),
+          grades = [0, 7, 14, 21, 28, 35],
+          labels = [];
+        // loop through our density intervals and generate a label with a colored square for each interval
+        for (var i = 0; i < grades.length; i++) {
+          div.innerHTML +=
+            '<i style="background:' + _this.getColor(grades[i] + 1) + '"></i> ' +
+            grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+');
+        }
+        return div;
+      };
+      legend.addTo(map);
+
+      // set our component's state with the GeoJSON data and L.geoJson layer
+      this.setState({
+        geojson: data,
+        geojsonLayer: geojsonLayer
+      });
+
     });
 
-    // fit the filtered geojson within the map's bounds
-    // this.zoomToFeature(this.state.geojsonLayer);
   },
 
   style: function (feature) {
@@ -183,12 +201,13 @@ var Map = React.createClass({
   },
 
   getColor: function (d) {
-    return d > 35  ? config.colors.house.level6 :
-           d > 28  ? config.colors.house.level5 :
-           d > 21  ? config.colors.house.level4 :
-           d > 14  ? config.colors.house.level3 :
-           d > 7   ? config.colors.house.level2 :
-                     config.colors.house.level1;
+    var chamber = this.state.chamber;
+    return d > 35  ? config.colors[chamber].level6 :
+           d > 28  ? config.colors[chamber].level5 :
+           d > 21  ? config.colors[chamber].level4 :
+           d > 14  ? config.colors[chamber].level3 :
+           d > 7   ? config.colors[chamber].level2 :
+                     config.colors[chamber].level1;
   },
 
   highlightFeature: function (e) {
@@ -219,8 +238,7 @@ var Map = React.createClass({
   },
 
   zoomToCenter: function (e) {
-    console.log('do the button thing');
-    map.setView([21.289373, -157.917480], 10);
+    map.setView([21.477351, -157.962799], 10);
   },
 
   onEachFeature: function (feature, layer) {
@@ -260,22 +278,8 @@ var Map = React.createClass({
     };
     info.addTo(map);
 
-    // bottom right legend panel
-    var legend = L.control({position: 'bottomright'});
-    var _this = this;
-    legend.onAdd = function (map) {
-      var div = L.DomUtil.create('div', 'info legend'),
-        grades = [0, 7, 14, 21, 28, 35],
-        labels = [];
-      // loop through our density intervals and generate a label with a colored square for each interval
-      for (var i = 0; i < grades.length; i++) {
-        div.innerHTML +=
-          '<i style="background:' + _this.getColor(grades[i] + 1) + '"></i> ' +
-          grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+');
-      }
-      return div;
-    };
-    legend.addTo(map);
+
+
 
   },
 
@@ -287,9 +291,9 @@ var Map = React.createClass({
         <div id="map"></div>
         <button onClick={this.zoomToCenter}>Image-Hawaii Islands</button>
 
-        <button onClick={this.addGeoJSON.bind(this, this.state.geo1)}>H - House Districts</button>
+        <button onClick={this.addGeoJSON.bind(this, this.state.geo1, 'house')}>H - House Districts</button>
 
-        <button onClick={this.addGeoJSON.bind(this, this.state.geo2)}>S - Senate Districts</button>
+        <button onClick={this.addGeoJSON.bind(this, this.state.geo2, 'senate')}>S - Senate Districts</button>
       </div>
     );
   }
