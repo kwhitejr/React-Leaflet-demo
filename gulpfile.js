@@ -23,7 +23,7 @@ var rimraf = require('rimraf');
 // object containing file names and paths for output
 var path = {
   HTML: 'src/index.html',
-  JSON: 'data/hshd.geojson',
+  JSON: 'data/*.geojson',
   MINIFIED_OUT: 'build.min.js',
   OUT: 'build.js',
   DEST: 'dist',

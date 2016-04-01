@@ -5,8 +5,6 @@ var ReactDOM = require('react-dom');
 var L = require('leaflet');
 var qwest = require('qwest');
 
-// add our subway line filter component
-var Filter = require('./Filter');
 
 // let's store the map configuration properties,
 // we could also move this to a separate file & require it
@@ -17,7 +15,7 @@ var map;
 
 // map paramaters to pass to L.map when we instantiate it
 config.params = {
-  center: [21.289373, -157.917480],
+  center: [21.449873, -157.962799],
   zoomControl: false,
   zoom: 10,
   // maxZoom: 19,
@@ -38,6 +36,26 @@ config.tileLayer = {
     accessToken: 'pk.eyJ1Ijoia3doaXRlanIiLCJhIjoiY2ltNXdqdGFwMDFzanRzbTRwOW52N2syZCJ9.8tgIWcf7d9ZyJ3gjtOssaQ'
   }
 };
+
+config.colors = {
+  house: {
+    level1: '#eff3ff',
+    level2: '#c6dbef',
+    level3: '#9ecae1',
+    level4: '#6baed6',
+    level5: '#3182bd',
+    level6: '#08519c'
+  },
+  senate: {
+    level1: '#fee5d9',
+    level2: '#fcbba1',
+    level3: '#fc9272',
+    level4: '#fb6a4a',
+    level5: '#de2d26',
+    level6: '#a50f15'
+  }
+}
+
 
 // here's the actual component
 var Map = React.createClass({
@@ -88,18 +106,33 @@ var Map = React.createClass({
   },
 
   getData: function() {
-    var that = this;
+    var _this = this;
 
     // qwest is a library for making Ajax requests, we use it here to load GeoJSON data
     qwest.get('hshd.geojson', null, { responseType : 'json' })
       .then(function(xhr, res) {
 
-        if (that.isMounted()) {
+        if (_this.isMounted()) {
           // count the number of features and store it in the component's state for use later
-          that.state.numberOfDistricts = res.features.length;
-          // that.setState({ numEntrances: that.state.numEntrances });
+          _this.setState({
+            geo1: res
+          });
           // use the component's addGeoJSON method to add the GeoJSON data to the map
-          that.addGeoJSON(res);
+          _this.addGeoJSON(res);
+        }
+      })
+      .catch(function(xhr, res, e) {
+        console.log('qwest catch: ', xhr, res, e);
+      });
+
+      qwest.get('hssd.geojson', null, { responseType : 'json' })
+      .then(function(xhr, res) {
+
+        if (_this.isMounted()) {
+          // count the number of features and store it in the component's state for use later
+          _this.setState({
+            geo2: res
+          });
         }
       })
       .catch(function(xhr, res, e) {
@@ -109,6 +142,9 @@ var Map = React.createClass({
 
   addGeoJSON: function(data) {
     var geojsonLayer = this.state.geojsonLayer;
+
+    // zoom to center
+    this.zoomToCenter();
 
     // if the GeoJSON layer has already been created, clear it.
     // this allows the GeoJSON to be redrawn when the user filters it
@@ -147,12 +183,12 @@ var Map = React.createClass({
   },
 
   getColor: function (d) {
-    return d > 35  ? '#08519c' :
-           d > 28  ? '#3182bd' :
-           d > 21  ? '#6baed6' :
-           d > 14  ? '#9ecae1' :
-           d > 7   ? '#c6dbef' :
-                     '#eff3ff';
+    return d > 35  ? config.colors.house.level6 :
+           d > 28  ? config.colors.house.level5 :
+           d > 21  ? config.colors.house.level4 :
+           d > 14  ? config.colors.house.level3 :
+           d > 7   ? config.colors.house.level2 :
+                     config.colors.house.level1;
   },
 
   highlightFeature: function (e) {
@@ -180,6 +216,11 @@ var Map = React.createClass({
 
   zoomToFeature: function (e) {
     map.fitBounds(e.target.getBounds());
+  },
+
+  zoomToCenter: function (e) {
+    console.log('do the button thing');
+    map.setView([21.289373, -157.917480], 10);
   },
 
   onEachFeature: function (feature, layer) {
@@ -236,15 +277,6 @@ var Map = React.createClass({
     };
     legend.addTo(map);
 
-    //top right button panel
-    var buttons = L.control({position: 'topleft'});
-    buttons.onAdd = function (map) {
-      this._div = L.DomUtil.create('div', 'buttons'); // create a div with a class "info"
-      this._div.innerHTML = '<button class="button">Image</button><button class="button">S</button><button class="button">H</button>';
-      return this._div;
-    };
-    buttons.addTo(map);
-
   },
 
   render : function() {
@@ -253,6 +285,11 @@ var Map = React.createClass({
     return (
       <div id="mapUI">
         <div id="map"></div>
+        <button onClick={this.zoomToCenter}>Image-Hawaii Islands</button>
+
+        <button onClick={this.addGeoJSON.bind(this, this.state.geo1)}>H - House Districts</button>
+
+        <button onClick={this.addGeoJSON.bind(this, this.state.geo2)}>S - Senate Districts</button>
       </div>
     );
   }
