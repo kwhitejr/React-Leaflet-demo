@@ -222,26 +222,28 @@ var Map = React.createClass({
     // bottom right legend panel
     var legend = L.control({position: 'bottomright'});
     var _this = this;
-
     legend.onAdd = function (map) {
-
       var div = L.DomUtil.create('div', 'info legend'),
         grades = [0, 7, 14, 21, 28, 35],
         labels = [];
-
       // loop through our density intervals and generate a label with a colored square for each interval
       for (var i = 0; i < grades.length; i++) {
         div.innerHTML +=
           '<i style="background:' + _this.getColor(grades[i] + 1) + '"></i> ' +
           grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+');
       }
-
       return div;
     };
-
     legend.addTo(map);
 
-
+    //top right button panel
+    var buttons = L.control({position: 'topleft'});
+    buttons.onAdd = function (map) {
+      this._div = L.DomUtil.create('div', 'buttons'); // create a div with a class "info"
+      this._div.innerHTML = '<button class="button">Image</button><button class="button">S</button><button class="button">H</button>';
+      return this._div;
+    };
+    buttons.addTo(map);
 
   },
 
